@@ -53,7 +53,12 @@ class Server {
                             Engine.addNarration(
                                 '${await Global.currentLocale.getEntry('client.inGame_cannotCancelLocalEventGeneration')}\n\n\n'
                             );
-                        } else {
+                        } else if (_job != null && _job!.action == 'world_event') {
+                            Engine.addNarration(
+                                '${await Global.currentLocale.getEntry('client.inGame_cannotCancelWorldEventGeneration')}\n\n\n'
+                            );
+                        }
+                        else {
                             Engine.addNarration(
                                 '${await Global.currentLocale.getEntry('client.inGame_noPromptsPending')}\n\n\n'
                             );
@@ -78,6 +83,14 @@ class Server {
 
                             _pull.remove(request);
                         }   
+                    break;
+
+                    case 'world_event':
+                        if (_job == null) {
+                            _worldEvent();
+
+                            _pull.remove(request);
+                        }
                     break;
 
                     case 'exit':
@@ -154,8 +167,71 @@ class Server {
                     }
                 }
             }
+
+            if (_world.newDay) {
+                _pull.add(Package(action: 'world_event', content: ''));
+            }
             
             _passedTime = 0;
+            _job = null;
+        } catch (e, stack) {
+            final message = '\n[${await Global.currentLocale.getEntry('client.inGame_generationError')}]: $e -> $stack';
+            
+            await Logger.createLog(message, LogType.warning);
+            print(message);
+
+            _job = null;
+        }
+    }
+
+     static Future<void> _worldEvent() async {
+        try {
+            _job = Package(action: 'world_event', content: '');
+
+            final regenerateAttempts = Global.currentConfig.getValueOrDefault(ConfigProperty.regenerateAttemptCount);
+
+            for (int i = 0; i < regenerateAttempts; i++) {
+                final eventGeneration = await Engine.generateWorldEvent(_world);
+
+                if (eventGeneration.type == ResultType.done) {
+                    final event = jsonDecode(eventGeneration.content as String) as Map<String, dynamic>;
+                    await write(path.join(Global.programPath, 'report', 'world_event.json'), content: encodeWithIndent(event)); // temp
+
+                    _world.applyChanges(event);
+
+                    final currentNarration = _world.getCurrentNarration();
+
+                    if (currentNarration.isNotEmpty) {
+                        _world.addMessageToHistory(
+                            role: Role.assistant, 
+                            content: '${_world.currentTime.shortTime}: $currentNarration'
+                        );
+
+                        await _printMessageHistory(
+                            _world.messageHistory
+                                .where((e) => e.role == Role.assistant)
+                                .toList(),
+                            lastSpecial: true
+                        );
+                    } else {
+                        Engine.addNarration(await Global.currentLocale.getEntry('client.inGame_worldEventGenerationDone'));
+                    }
+
+                    _lastWorldState = World.copy(_world);
+                    _world.writeWorld();
+
+                    break;
+                } else {
+                    Engine.addNarration('${await Global.currentLocale.getEntry('client.inGame_worldEventGenerationFailed')}\n');
+
+                    if (regenerateAttempts > 1) {
+                        Engine.addNarration('${await Global.currentLocale.getEntry('client.inGame_worldEventGenerationRetry')} (${i + 1}/$regenerateAttempts)...\n\n\n');
+                    } else {
+                        Engine.addNarration('\n\n\n');
+                    }
+                }
+            }
+
             _job = null;
         } catch (e, stack) {
             final message = '\n[${await Global.currentLocale.getEntry('client.inGame_generationError')}]: $e -> $stack';
@@ -208,6 +284,10 @@ class Server {
             } else {
                 Engine.addNarration('${await Global.currentLocale.getEntry('client.inGame_generationFailed')}\n\n\n');
             }
+
+            if (_world.newDay) {
+                _pull.add(Package(action: 'world_event', content: ''));
+            }
             
             _passedTime = 0;
             _job = null;
@@ -241,6 +321,7 @@ class Server {
                 'prompt' => await Global.currentLocale.getEntry('client.inGame_promptPendingAlert'),
                 'revert' => await Global.currentLocale.getEntry('client.inGame_revertPendingAlert'),
                 'local_event' => await Global.currentLocale.getEntry('client.inGame_localEventPendingAlert'),
+                'world_event' => await Global.currentLocale.getEntry('client.inGame_worldEventPendingAlert'),
 
                 _ => '' 
             };
@@ -287,7 +368,7 @@ class Server {
                     _passedTime += 1;
 
                     if (_passedTime >= 300) {
-                        if (_passedTime % 50 == 0) {
+                        if (_passedTime % 200 == 0) {
                             final chance = 30 + ((_passedTime - 300) / 50).toInt();
                             final random = rnd.nextInt(100) + 1;
 

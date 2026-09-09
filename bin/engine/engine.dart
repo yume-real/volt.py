@@ -125,7 +125,7 @@ class Engine {
                         role: Role.user,
                         content: data.localEventGenerationUserPrompt(
                             encodeWithIndent(
-                                world.toLocalEventInfo()
+                                world.toEventInfo()
                                     ..addEntries([
                                         MapEntry(
                                             'playerEvent', playerEventJson
@@ -194,7 +194,7 @@ class Engine {
                     role: Role.user, 
                     content: data.localEventGenerationUserPrompt(
                         encodeWithIndent(
-                            world.toLocalEventInfo()
+                            world.toEventInfo()
                                 ..addEntries([
                                     MapEntry(
                                         'timePassed', 
@@ -226,6 +226,46 @@ class Engine {
 
         return localEvent;
     }
+
+    static Future<GenerationResult> generateWorldEvent(final World world) async {
+        final provider = Global.currentConfig.getValueOrDefault(ConfigProperty.aiProviderInUse);
+
+        final worldEvent = await _sendRequest(
+            [
+                ChatEntry (
+                    role: Role.system, 
+                    content: data.localEventGenerationSystemPrompt()
+                ),
+                ChatEntry(
+                    role: Role.user, 
+                    content: data.localEventGenerationUserPrompt(
+                        encodeWithIndent(
+                            world.toEventInfo()
+                        )
+                    )
+                )
+            ], 
+            provider
+        );
+
+        if (worldEvent.type == ResultType.error) {
+            Logger.createLog('Empty response while generation local event', LogType.warning);
+
+            return GenerationResult(
+                ResultType.error,
+                'Empty response while generation local event'
+            );
+        }
+
+        if (worldEvent.type == ResultType.canceled) {
+            return GenerationResult(
+                ResultType.canceled,
+                'canceled'
+            );
+        }
+
+        return worldEvent;
+    } 
 
     static void addNarration(String narration) {
         _narrationPull.add(narration);

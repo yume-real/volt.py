@@ -22,6 +22,7 @@ class World {
     final List<ChatEntry> messageHistory;
     final Map<String, dynamic> globalFlags;
 
+    bool _newDay = false;
     String? _currentNarration;
     String? _savePath;
     
@@ -56,8 +57,22 @@ class World {
         }
     }
 
+    bool get newDay {
+        final copy = _newDay;
+
+        _newDay = false;
+
+        return copy;
+    }
+
     void advanceTime(int seconds) {
+        final currentDay = _currentTime.day;
+
         _currentTime = _currentTime.addSeconds(seconds);
+        
+        if (_currentTime.day != currentDay) {
+            _newDay = true;
+        }
 
         for (final actor in actors) {
             final birthTime = actor.birthTime;
@@ -319,7 +334,7 @@ class World {
         };
     }
 
-    Map<String, dynamic> toLocalEventInfo() {
+    Map<String, dynamic> toEventInfo() {
         final player = playerActor;
         final playerLocationId = player.locationId;
 

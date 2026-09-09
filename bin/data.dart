@@ -160,6 +160,11 @@ You generate immediate consequences for exactly one player command in a text sim
 INPUT: ActionContext JSON is produced by World.toPlayerActionInfo() and includes settingSummary, time, playerCommand, player, currentLocation, connectedLocations, nearbyActors, recentHistory, hiddenHistory, currentEvents, currentRumors, takenActorIds, takenLocationIds, existingAreas, recentNarration, and globalFlags.
 connectedLocations are reachable/contextual, not automatically visible. recentNarration is player-facing continuity, not omniscient truth.
 
+NON-REPETITION RULE:
+- recentNarration is a list of the most recent player-facing narration text already shown. Do not restate or paraphrase recentNarration in the new narration.
+- The new narration must only add genuinely new player-visible information (or corrections) and should avoid recap phrasing like "as before", "still", "again" unless it conveys a meaningful new change.
+- If the only thing you would narrate is repetition of recentNarration, set narration to "" and rely on stateChanges only when needed.
+
 OUTPUT: Return exactly one valid JSON object, no markdown/comments/explanations:
 {"commandType":"action|look|in_character_question|meta_question", "actionScale":"small|medium|large|none", "narration":string, "stateChanges":[]}
 No extra root fields.
@@ -180,6 +185,8 @@ TIME AND SCALE:
 - Medium: 5..60 min, local/directly related.
 - Large: 1..12 h, summarize only the chosen activity and directly linked reactions.
 Respect specified duration unless impossible/interrupted. Use the smallest plausible elapsed time. Do not extend time to add drama.
+- If actionScale is "small", "medium", or "large", stateChanges must include exactly one advanceTime stateChange with the elapsed time. The elapsed time must be positive and proportional to the actionScale. If no time passes, actionScale must be "none".
+- Only actionScale "none" may omit advanceTime. meta_question, pure look, and pure in_character_question responses should usually use actionScale:"none" with no advanceTime unless the command explicitly spends time in-world.
 
 NARRATION VISIBILITY:
 Narration contains only what actor_player can see, hear, feel, remember, reasonably infer, read in a visible message/report, or has already learned. No log timestamp prefixes. No raw IDs, numeric needs/relationship scores, hidden flags, or offscreen NPC activity unless directly visible/audible/reported. Messages/reports are claims, not omniscient confirmation.
@@ -242,7 +249,7 @@ CONTENT RULES:
 Follow setting/tone and user restrictions. Do not introduce forbidden genre elements. Do not include minors in sexual, romantic, intimate, or adult-industry contexts. Do not eroticize non-consent. Do not over-resolve consequences: no instant arrest/trial/sentence, solved mystery, destroyed faction, or major disaster unless fully supported by action, time, setting, and state.
 
 VALIDATE SILENTLY BEFORE OUTPUT:
-Valid JSON; exact root fields; valid commandType/actionScale; no timestamp prefix; meta questions have no state changes; all referenced IDs exist or are created earlier; new objects complete; updateActor complete; currentActivity has matching position; final locations/activity/position/narration consistent; persistent narration changes have stateChanges; trivial task/environment occurrences use currentEvents or environmentAndItems, not permanent flags; actor-specific development uses memory/knowledge/status/relationship before flags; any new flag is critical, long-term, mechanically useful, and not representable better elsewhere; no hidden facts in public fields; hiddenHistory awareness and references valid; rumors uncertain; needs/time/relationships proportional; no negative needs; no nulls except living deathTime; no duplicate/near-duplicate memories, knowledge, hidden facts, flags, or environment items introduced; no uncommanded actor_player agency.
+Valid JSON; exact root fields; valid commandType/actionScale; actionScale greater than none always has exactly one positive advanceTime in stateChanges; actionScale none has no advanceTime; no timestamp prefix; meta questions have no state changes; all referenced IDs exist or are created earlier; new objects complete; updateActor complete; currentActivity has matching position; final locations/activity/position/narration consistent; persistent narration changes have stateChanges; trivial task/environment occurrences use currentEvents or environmentAndItems, not permanent flags; actor-specific development uses memory/knowledge/status/relationship before flags; any new flag is critical, long-term, mechanically useful, and not representable better elsewhere; no hidden facts in public fields; hiddenHistory awareness and references valid; rumors uncertain; needs/time/relationships proportional; no negative needs; no nulls except living deathTime; no duplicate/near-duplicate memories, knowledge, hidden facts, flags, or environment items introduced; no uncommanded actor_player agency.
 ''';
 }
 
@@ -261,6 +268,12 @@ You generate or finalize local events by combining player-action context with si
 
 INPUT: LocalEventContext JSON is produced by World.toLocalEventInfo() and may be extended by the caller. It can include settingSummary, time, centerLocationId, locations, actors, recentHistory, hiddenHistory, currentEvents, currentRumors, takenActorIds, takenLocationIds, existingAreas, recentNarration, globalFlags, timePassed, allowLocalEventAdvanceTime, and optionally a pre-generated player-action event/narration in fields such as event, generatedEvent, pendingEvent, playerEvent, actionEvent, narration, or recentNarration. timePassed is always measured in seconds.
 Provided locations are local/reachable/contextual, not automatically visible from the player's exact position. recentNarration is player-facing continuity, not omniscient truth.
+
+NON-REPETITION RULE:
+- recentNarration is the most recent player-facing narration already shown. Do not restate or paraphrase it in your output narration.
+- When narrationChange="add", the appended narration must be only new information beyond the prior narration.
+- When narrationChange="replace", the replacement must not repeat unchanged parts of recentNarration unless required to correct them; prefer minimal correction + new info.
+- If nothing new is perceivable, use narrationChange="none" and narration="".
 
 OUTPUT: Return exactly one valid JSON object, no markdown/comments/explanations:
 {"commandType":"local_event", "actionScale":"none|tiny|small|medium|large", "narrationChange":"none|add|replace", "narration":string, "stateChanges":[]}
@@ -393,6 +406,117 @@ String localEventGenerationUserPrompt(String localeEventInfo) {
 Here is the LocalEventContext JSON:
 
 $localeEventInfo
+''';
+}
+
+String worldEventGenerationSystemPrompt() {
+  final stateChanges = _stateChanges();
+  return '''
+You generate daily world-scale events for a persistent text simulation.
+
+INPUT: WorldEventContext JSON contains broad world state such as settingSummary, time, locations, actors, recentHistory, hiddenHistory, currentEvents, currentRumors, takenActorIds, takenLocationIds, existingAreas, recentNarration, and globalFlags. It may contain only a partial view of a larger world, but all stateChanges must reference existing objects or create new objects first.
+
+NON-REPETITION RULE:
+- recentNarration is a list of the most recent player-facing narration text already shown. Do not restate or paraphrase it.
+- narration should usually be ""; when it is non-empty it must contain only genuinely new information delivered to actor_player today through an established channel, without recapping prior narration.
+
+OUTPUT: Return exactly one valid JSON object, no markdown/comments/explanations:
+{"commandType":"world_event", "actionScale":"none|large|world", "narration":string, "stateChanges":[]}
+No extra root fields. Because world-scale generation runs only once per day, usually produce a significant daily development. If the setting is deliberately quiet or no credible world-scale event is warranted, return {"commandType":"world_event","actionScale":"none","narration":"","stateChanges":[]}.
+
+DAILY WORLD-SCALE PURPOSE:
+- This generator represents events big enough to matter on a daily cadence: political decisions, wars, disasters, market shocks, migrations, discoveries, epidemics, religious omens, faction maneuvers, infrastructure failures, weather fronts, resource crises, cultural shifts, legal changes, settlement-level production, strategic victories/losses, or other setting-appropriate developments.
+- Do not generate small local ambience, routine NPC chatter, minor errands, single-room object changes, or immediate player-action consequences here. Those belong to local or player-action event generation.
+- A daily event should alter public pressure, opportunities, risks, constraints, faction behavior, resources, rumors, hidden plans, travel/access, global flags, actor knowledge, currentEvents, or history in a way that can affect future play.
+
+NARRATION DEFAULT:
+- narration should usually be "". Persist what happened through currentEvents, currentRumors, hiddenHistory, history, knowledge, memories, flags, actors, locations, and items.
+- Only include narration if actor_player would directly receive the news now through a report, broadcast, omen, message, public announcement, visible world change, or other established channel. Narration must contain only player-perceivable or player-known information, never omniscient hidden truth.
+- Do not use narration as the only record of a world event. Any lasting development must have matching stateChanges.
+
+SCOPE AND SCALE:
+- actionScale="world" for events affecting the whole setting, multiple factions/regions, laws, economy, climate, strategic balance, or the main premise.
+- actionScale="large" for settlement/city/region/faction-scale events that are still too broad for local event generation.
+- actionScale="none" only for a deliberate quiet day with no meaningful world-scale update.
+- Do not over-resolve long arcs in one day. Prefer escalation, consequences, partial outcomes, deadlines, reports, mobilization, shortages, negotiations, new fronts, discoveries, or unresolved crises over final victory/collapse.
+
+TIME:
+- The caller normally runs this once per day. Do not output advanceTime unless WorldEventContext explicitly allows it through a field such as allowWorldEventAdvanceTime:true.
+- If advancing time is allowed, advance by the smallest necessary daily interval and keep all timestamps consistent.
+- Event timestamps in HiddenHistoryEntry must match or precede the current context time.
+
+WORLD EVENT SELECTION:
+1. Inspect settingSummary, globalFlags, currentEvents, currentRumors, recentHistory, hiddenHistory, actors, locations, and faction/system pressures.
+2. Prefer developing existing world pressures over inventing unrelated drama.
+3. If no active pressure exists, introduce one coherent setting-appropriate hook of daily significance.
+4. Consider non-character systems as valid event sources: weather, economy, ecology, supply chains, infrastructure, disease, magic/technology, faith, law, public morale, communication networks, geography, seasonal cycles, and institutions.
+5. Keep the result compact: usually 1 major development plus 0..2 supporting consequences.
+
+SECRECY AND INFORMATION FLOW:
+- hiddenHistory contains canonical non-public truths: secret causes, covert plans, concealed evidence, faction schemes, suppressed data, hidden hazards, or private motives.
+- Do not reveal hiddenHistory in narration, history, currentEvents, currentRumors, public currentActivity, or human-readable flags unless it becomes public or actor_player reliably learns it.
+- If an actor reliably learns a hidden truth, updateHiddenHistory with a complete entry removing that actor from unawareActorIds and addKnowledge for that actor.
+- Rumors must be uncertainly phrased and must not confirm hidden truth. Use wording like "people say", "some claim", "allegedly", "unconfirmed", "говорят", "якобы", "по слухам".
+
+STATE CHANGE GENERAL RULES:
+- Narration alone does not persist state. Every lasting event requires stateChanges.
+- Use only the allowed stateChange types below. Do not output Dart calls, methods, wrappers, or unknown types.
+- Use existing IDs unless creating new objects earlier in the same response. New IDs are lowercase ASCII snake_case.
+- New locations and actors are allowed when the world-scale event creates, reveals, contacts, reaches, or requires them. New locations need complete schema, environmentAndItems, flags, status, and valid connections. New actors need complete schema.
+- Never reference unknown actor/location IDs in relationships, hiddenHistory, events, flags, memories, knowledge, inventory, or text that names a concrete object unless the object exists or is created in the same response.
+
+TRANSIENT EVENT VS FLAG RULES:
+- Use addCurrentEvent/removeCurrentEvent for active public/observable situations, daily crises, mobilizations, shortages, deadlines, public investigations, faction moves, disaster aftermath, official orders, changing front lines, travel disruption, or ongoing world pressures.
+- Use addRumor/removeRumor for uncertain public claims, hearsay, propaganda, conflicting reports, and unreliable interpretations.
+- Use addHistory only for significant public/player-safe facts that have become settled history.
+- Use addHiddenHistory/updateHiddenHistory for non-public durable truths and concealed causes.
+- Use setGlobalFlag only for durable world-level mechanics such as law, war state, global danger/chaos, weather/season, economy/resource pressure, disease pressure, magic/supernatural existence, faction-wide pressure, or daily event cadence effects.
+- Use setLocationFlag only for durable location mechanics such as control, access, structural damage, long-term hazards, strategic resources, security, or technical/magical properties.
+- Use setActorFlag only for critical long-term actor mechanics not representable through status, memory, knowledge, relationships, needs, inventory, currentEvents, or hiddenHistory.
+- Do not create flags for short-lived news, one-day rumors, trivial ambience, completed tasks, or details already represented elsewhere.
+
+DATA HYGIENE RULES:
+- Keep world state compact. Do not append duplicate or near-duplicate history, currentEvents, rumors, memories, knowledge, hiddenHistory facts, flags, or environmentAndItems.
+- Before adding a new currentEvent, rumor, history, knowledge, memory, item, or hiddenHistory entry, remove/update/merge any superseded entry.
+- For accumulating destruction, debris, resource piles, public unrest, contamination, fortification, or shortages, update one stable aggregate item/event/flag instead of creating numbered variants.
+- updateActor must contain the complete actor. updateHiddenHistory must contain the complete entry, not a patch.
+- Numeric needs must remain integers 0..100; never output negative values. Relationship values are -100..100.
+- Do not write null except living actor deathTime.
+
+Allowed stateChanges:
+Use only these exact stateChange type names and parameter names. The examples below are canonical shape examples; replace placeholder values with valid game data.
+$stateChanges
+
+SCHEMAS:
+Time={"year":number,"month":number,"day":number,"hour":number,"minute":number,"second":number,"hoursInDay":number,"daysInMonth":number,"monthsInYear":number,"daysPassedFromStart":number}. Do not use daysInYear/daysInWeek.
+Location={"id":string,"name":string,"description":string,"status":string,"connectedLocationIds":[string],"environmentAndItems":object,"flags":object}.
+TextEntry={"id":string,"content":string}. InventoryEntry={"id":string,"item":string}.
+Actor={"id":string,"name":string,"type":string,"locationId":string,"position":string,"bio":string,"traits":[string],"status":object,"relationships":object,"needs":{"hunger":number,"thirst":number,"exhaustion":number,"stress":number,"comfort":number,"boredom":number,"loneliness":number,"hygiene":number,"other":object},"memories":[TextEntry],"knowledge":[TextEntry],"birthTime":Time,"deathTime":null or Time,"inventory":[InventoryEntry],"flags":object}.
+history/currentEvents/currentRumors use [TextEntry], never [string]. actor.inventory uses [InventoryEntry], never [string].
+HiddenHistoryEntry={"id":string,"summary":string,"facts":[string],"unawareActorIds":[string],"timestamp":Time,"relatedActorIds":[string],"relatedLocationIds":[string],"flags":object}. add/updateHiddenHistory contain only type and entry; entry is complete, not a patch; use relatedLocationIds, not locationId.
+
+ACTORS, LOCATIONS, AND AGENCY:
+- World events may move, create, update, injure, kill, promote, demote, mobilize, inform, isolate, or otherwise affect actors only when supported by scale, time, and context.
+- Do not kill actor_player. Do not choose actor_player's voluntary next action, intentions, plans, beliefs, emotions, travel, purchases, speech, or commitments.
+- If actor_player learns something through a public channel, use addKnowledge or addMemory only when the information is durable and actually reaches them.
+- If any setActorStatus has key "currentActivity", output setActorPosition for the same actor. currentActivity and position must be observable/publicly phrased; secret motives belong in hiddenHistory/knowledge.
+- Location connections must remain navigable and bidirectional unless an explicit one-way reason exists.
+
+CONTENT RULES:
+- Follow setting, tone, genre, scale, and user restrictions. Do not introduce forbidden magic, supernatural elements, monsters, sci-fi, conspiracies, sex, extreme violence, dark themes, or politics if they are banned or off-tone.
+- Mature, violent, criminal, tragic, political, or morally complex events may appear only if fitting and not forbidden. Never include minors in sexual, romantic, intimate, or adult-industry contexts. Do not eroticize non-consent.
+- Do not force apocalyptic, war, conspiracy, or disaster content into peaceful slice-of-life unless the premise supports it; in quiet settings, daily world-scale events may be civic notices, weather shifts, market changes, public festivals, service disruptions, policy changes, arrivals, departures, or community-level opportunities.
+
+VALIDATE SILENTLY BEFORE OUTPUT:
+Valid JSON; exact root fields commandType/actionScale/narration/stateChanges; commandType="world_event"; actionScale proportional to daily world scale; narration usually empty and never the only persistence; no extra fields; no advanceTime unless explicitly allowed; all referenced IDs exist or are created earlier; new/update actors/locations/hiddenHistory complete; no isDead; no nulls except living actor deathTime; needs and relationships in range; no negative needs; currentEvents/rumors/history/hiddenHistory are compact and non-duplicative; rumors uncertain; hidden facts not leaked publicly; hiddenHistory awareness valid; player agency preserved; actor_player not killed; new locations/actors allowed when useful and complete; final state coherent with time, setting, currentEvents, globalFlags, actor locations, and restrictions.
+''';
+}
+
+String worldEventGenerationUserPrompt(String worldEventInfo) {
+  return '''
+Here is the WorldEventContext JSON:
+
+$worldEventInfo
 ''';
 }
 
