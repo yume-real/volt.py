@@ -180,7 +180,7 @@ Future<void> _worldEdit(World world) async {
         await write(
             path.join(
                 Global.savesDirectoryPath,
-                '${id}_${DateFormat('yyyy-MM-dd:HH-mm-ss').format(DateTime.now())}.json'
+                '${id}_${DateFormat('yyyy-MM-dd+HH-mm-ss').format(DateTime.now())}.json'
             ),
             content: encodeWithIndent(newWorld)
         );
@@ -404,7 +404,7 @@ Future<World?> chooseSave() async {
         if (worldGeneration.type == ResultType.done) {
             final newWorld = worldGeneration.content as World;
 
-            newWorld.savePath = path.join(Global.savesDirectoryPath, '${newWorld.id}_${DateFormat('yyyy-MM-dd:HH-mm-ss').format(DateTime.now())}.json');
+            newWorld.savePath = path.join(Global.savesDirectoryPath, '${newWorld.id}_${DateFormat('yyyy-MM-dd+HH-mm-ss').format(DateTime.now())}.json');
 
             await write(newWorld.savePath, content: encodeWithIndent(newWorld.toJson()));
 
