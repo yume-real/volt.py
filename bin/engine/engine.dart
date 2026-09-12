@@ -315,7 +315,7 @@ class Engine {
 
             final response = client.chatStream(
                 request: ChatCompletionRequest(
-                    model: 'mistral-large-latest', 
+                    model: Global.currentConfig.getValueOrDefault(ConfigProperty.mistralModelName), 
                     messages: messages.map((m) => m.toMistralChatEntry()).toList(),
                     temperature: Global.currentConfig.getValueOrDefault(ConfigProperty.temperature),
                     responseFormat: ResponseFormat(type: ResponseFormats.jsonObject)

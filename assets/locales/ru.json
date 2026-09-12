@@ -32,6 +32,7 @@
     "configProperty.logRotationLimit": "Лимит ротации логов",
     "configProperty.aiProviderInUse": "Используемый провайдер",
     "configProperty.mistralApiKey": "Mistral API ключ",
+    "configProperty.mistralModelName": "Название модели Mistral Ai",
     "configProperty.customOpenAICompatibleProviderUrl": "URL OpenAI-совместимого провайдера",
     "configProperty.customOpenAICompatibleApiKey": "API ключ OpenAI-совместимого провайдера",
     "configProperty.customOpenAICompatibleModel": "Название модели OpenAI-совместимого провайдера",

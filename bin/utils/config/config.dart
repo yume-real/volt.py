@@ -10,6 +10,7 @@ class Config {
         ConfigProperty.logRotationLimit: 1000,
         ConfigProperty.aiProviderInUse: 'mistral',
         ConfigProperty.mistralApiKey: '',
+        ConfigProperty.mistralModelName: 'mistral-nemo-latest',
         ConfigProperty.customOpenAICompatibleProviderUrl: '',
         ConfigProperty.customOpenAICompatibleApiKey: '',
         ConfigProperty.customOpenAICompatibleModel: '',
@@ -39,25 +40,26 @@ class Config {
         }
 
         return Config({
-            ConfigProperty.language: processedJson[ConfigProperty.language] as String? ?? 'en',
-            ConfigProperty.exitPhrase: processedJson[ConfigProperty.exitPhrase] as String? ?? 'exit',
-            ConfigProperty.logRotation: processedJson[ConfigProperty.logRotation] as bool? ?? true,
-            ConfigProperty.logRotationLimit: processedJson[ConfigProperty.logRotationLimit] as int? ?? 1000,
-            ConfigProperty.aiProviderInUse: processedJson[ConfigProperty.aiProviderInUse] as String? ?? 'mistral',
-            ConfigProperty.mistralApiKey: processedJson[ConfigProperty.mistralApiKey] as String? ?? '',
-            ConfigProperty.customOpenAICompatibleProviderUrl: processedJson[ConfigProperty.customOpenAICompatibleProviderUrl] as String? ?? '',
-            ConfigProperty.customOpenAICompatibleApiKey: processedJson[ConfigProperty.customOpenAICompatibleApiKey] as String? ?? '',
-            ConfigProperty.customOpenAICompatibleModel: processedJson[ConfigProperty.customOpenAICompatibleModel] as String? ?? '',
-            ConfigProperty.temperature: (processedJson[ConfigProperty.temperature] as num?)?.toDouble() ?? 0.7,
-            ConfigProperty.messageHistorySize: processedJson[ConfigProperty.messageHistorySize] as int? ?? 30,
-            ConfigProperty.worldHistorySize: processedJson[ConfigProperty.worldHistorySize] as int? ?? 50,
-            ConfigProperty.worldRumorsSize: processedJson[ConfigProperty.worldRumorsSize] as int? ?? 50,
-            ConfigProperty.worldEventsSize: processedJson[ConfigProperty.worldEventsSize] as int? ?? 50,
-            ConfigProperty.actorMemorySize: processedJson[ConfigProperty.actorMemorySize] as int? ?? 20,
-            ConfigProperty.actorKnowledgeSize: processedJson[ConfigProperty.actorKnowledgeSize] as int? ?? 20,
-            ConfigProperty.textSpeed: (processedJson[ConfigProperty.textSpeed] as num?)?.toDouble() ?? 0.5,
-            ConfigProperty.generateLocalEvents: processedJson[ConfigProperty.generateLocalEvents] as bool? ?? true,
-            ConfigProperty.regenerateAttemptCount: processedJson[ConfigProperty.regenerateAttemptCount] as int? ?? 1
+            .language: processedJson[ConfigProperty.language] as String? ?? 'en',
+            .exitPhrase: processedJson[ConfigProperty.exitPhrase] as String? ?? 'exit',
+            .logRotation: processedJson[ConfigProperty.logRotation] as bool? ?? true,
+            .logRotationLimit: processedJson[ConfigProperty.logRotationLimit] as int? ?? 1000,
+            .aiProviderInUse: processedJson[ConfigProperty.aiProviderInUse] as String? ?? 'mistral',
+            .mistralApiKey: processedJson[ConfigProperty.mistralApiKey] as String? ?? '',
+            .mistralModelName: processedJson[ConfigProperty.mistralModelName] as String? ?? '',
+            .customOpenAICompatibleProviderUrl: processedJson[ConfigProperty.customOpenAICompatibleProviderUrl] as String? ?? '',
+            .customOpenAICompatibleApiKey: processedJson[ConfigProperty.customOpenAICompatibleApiKey] as String? ?? '',
+            .customOpenAICompatibleModel: processedJson[ConfigProperty.customOpenAICompatibleModel] as String? ?? '',
+            .temperature: (processedJson[ConfigProperty.temperature] as num?)?.toDouble() ?? 0.7,
+            .messageHistorySize: processedJson[ConfigProperty.messageHistorySize] as int? ?? 30,
+            .worldHistorySize: processedJson[ConfigProperty.worldHistorySize] as int? ?? 50,
+            .worldRumorsSize: processedJson[ConfigProperty.worldRumorsSize] as int? ?? 50,
+            .worldEventsSize: processedJson[ConfigProperty.worldEventsSize] as int? ?? 50,
+            .actorMemorySize: processedJson[ConfigProperty.actorMemorySize] as int? ?? 20,
+            .actorKnowledgeSize: processedJson[ConfigProperty.actorKnowledgeSize] as int? ?? 20,
+            .textSpeed: (processedJson[ConfigProperty.textSpeed] as num?)?.toDouble() ?? 0.5,
+            .generateLocalEvents: processedJson[ConfigProperty.generateLocalEvents] as bool? ?? true,
+            .regenerateAttemptCount: processedJson[ConfigProperty.regenerateAttemptCount] as int? ?? 1
         });
     }
 
