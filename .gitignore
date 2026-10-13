@@ -1,5 +1,17 @@
-.dart_tool/
+# runtime data
+config.json
+log.txt
+saves/
+debug/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# editors
 *.env
 .vscode/
-assets/old
-dialog/build/
+.idea/

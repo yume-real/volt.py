@@ -1,0 +1,42 @@
+MIT License
+
+Copyright (c) 2026 ✧✼ Y U M E ✼✧
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Portions derived from upstream
+
+Volt.py is a rewrite of https://github.com/ThetaInterface/volt, which was
+published **without a license file**. Under copyright law that means the
+upstream author reserved all rights to it and granted no permission to
+redistribute it, so the MIT terms above cover only the parts written for this
+rewrite.
+
+Specifically, the following came from upstream and stay under their original
+owner's rights:
+
+* `volt/prompts.py` — the prompt texts, copied from the upstream
+  `bin/data.dart` without changes to their wording;
+* the world data schema and its identifiers (`actor_player`, `loc_*`,
+  `stateChanges` types, the `Time`/`Actor`/`Location` field names).
+
+To relicense those parts under MIT as well, permission from the upstream author
+is required — until then, do not present this project as MIT-licensed in full.
